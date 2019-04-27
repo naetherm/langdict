@@ -63,7 +63,7 @@ int main(int argc, char ** argv) {
 	std::cout << "Levenshtein: " << levenshtein << std::endl;
 
 	std::vector<std::string> iwords;
-
+	std::cout << "Add real words to the dictionary" << std::endl;
 	// Read in inputfile
 	std::ifstream ifile(ifilename);
 	std::string line;
@@ -79,23 +79,23 @@ int main(int argc, char ** argv) {
 	// Create json file
 	nlohmann::json j;
 	for (int i = 0; i < iwords.size(); ++i) {
-		j[iwords.at(i)] = { {"id", std::to_string(i)}, {"type", REAL_WORD}, {"neighbor", {}} };
+		j["real"][iwords.at(i)] = { {"id", std::to_string(i)}, {"type", REAL_WORD}, {"neighbor", {}}, {"archaic", {}} };
 	}
 
 	for (int i = 0; i < iwords.size(); ++i) {
 		std::cout << "Processing " << i << " of " << iwords.size() << std::endl;
 		for (int k = i; k < iwords.size(); ++k) {
 			if (abs(iwords.at(i).size() - iwords.at(k).size()) <= levenshtein) {
-				if ((std::find(j[iwords.at(i)]["neighbor"].begin(), j[iwords.at(i)]["neighbor"].end(), k) == j[iwords.at(i)]["neighbor"].end()) &&
+				if ((std::find(j["real"][iwords.at(i)]["neighbor"].begin(), j["real"][iwords.at(i)]["neighbor"].end(), k) == j["real"][iwords.at(i)]["neighbor"].end()) &&
 						(edit_distance(iwords.at(i), iwords.at(k)) == levenshtein)) {
 					// Add j
-					j[iwords.at(i)]["neighbor"].push_back(k);
-					j[iwords.at(k)]["neighbor"].push_back(i);
+					j["real"][iwords.at(i)]["neighbor"].push_back(k);
+					j["real"][iwords.at(k)]["neighbor"].push_back(i);
 				}
 			}
 		}
 	}
-
+	std::cout << "\tDone.\nWill now induce archaic words to the dictionary" << std::endl;
 	if (!afilename.empty()) {
 
 		std::vector<std::string> awords;
@@ -107,10 +107,31 @@ int main(int argc, char ** argv) {
 
 		// Append archaic words
 		for (int i = 0; i < awords.size(); ++i) {
-			j[awords.at(i)] = { {"id", std::to_string(iwords.size()+i)}, {"type", ARCHAIC_WORD}, {"neighbor", {}} };
+			j["archaic"][awords.at(i)] = { {"id", std::to_string(iwords.size()+i)}, {"type", ARCHAIC_WORD}, {"neighbor", {}}, {"archaic", {}} };
+			for (int k = 0; k < iwords.size(); ++k) {
+				if (abs(awords.at(i).size() - iwords.at(k).size()) <= levenshtein) {
+					if ((std::find(j["real"][iwords.at(i)]["neighbor"].begin(), j["real"][iwords.at(i)]["neighbor"].end(), k) == j["real"][iwords.at(i)]["neighbor"].end()) &&
+							(edit_distance(awords.at(i), iwords.at(k)) == levenshtein)) {
+						// Add j
+						j["archaic"][awords.at(i)]["neighbor"].push_back(k);
+						j["real"][iwords.at(k)]["archaic"].push_back(i);
+					}
+				}
+			}
+			for (int k = i; k < awords.size(); ++k) {
+				if (abs(awords.at(i).size() - awords.at(k).size()) <= levenshtein) {
+					if ((std::find(j["archaic"][awords.at(i)]["archaic"].begin(), j["archaic"][awords.at(i)]["archaic"].end(), k) == j["archaic"][awords.at(i)]["archaic"].end()) &&
+							(edit_distance(awords.at(i), awords.at(k)) == levenshtein)) {
+						// Add j
+						j["archaic"][awords.at(i)]["archaic"].push_back(k);
+						j["archaic"][awords.at(k)]["archaic"].push_back(i);
+					}
+				}
+			}
 		}
 		afile.close();
 	}
+	std::cout << "\tDone.\n" << std::endl;
 
 	// Open the output file
 	std::ofstream ofile(ofilename);
