@@ -36,3 +36,26 @@ Example:
 ```bash
 ./lang_dict --output=./langs/en/en_US.json --input=/usr/share/dict/american-english-insane
 ```
+
+## Structure
+
+The generated json has the following structure:
+
+```json
+[
+ "real": [
+  "<WORD_0>": {"id":xxx, "type": "REAL_WORD", "neighbor": [], "archaic": []},
+  ...
+  "<WORD_N>": {"id":xxx, "type": "REAL_WORD", "neighbor": [], "archaic": []}
+ ],
+ "archaic": [
+   "<WORD_0>": {"id":xxx, "type": "ARCHAIC", "neighbor": [], "archaic": []},
+   ...
+   "<WORD_M>": {"id":xxx, "type": "ARCHAIC", "neighbor": [], "archaic": []},
+ ]
+]
+```
+
+Where the neighbor list is a collection of IDs that are real word neighbors of the current word, according 
+to the levenshtein edit distance. The IDs within the archaic list are archaic word neighbors of the current 
+one, according to the levenshtein edit distance.
